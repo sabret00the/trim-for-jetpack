@@ -93,7 +93,7 @@ Trim.prototype = {
   }
 };
 
-var theHTML = "<html><head><style>body{text-align: center} #trim{ color: #666; font-size: 20px; font-family: helvetica, arial, sans-serif; }</style></head><body><span id='trim'>tr.im</span></body></html>";
+var theHTML = "<html><head><style>body{text-align: center} #trim{ color: #666; font-size: 10px; font-family: helvetica, arial, sans-serif; }</style></head><body><a id='trim' href='javascript(onClick;return 'tr.im Link';);><img src='http://tr.im/favicon.ico' />tr.im</a></body></html>";
 
 jetpack.statusBar.append({
   html: theHTML,
@@ -102,4 +102,5 @@ jetpack.statusBar.append({
     var trim = new Trim(doc);
   }
 });
+
 
