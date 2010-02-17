@@ -15,10 +15,12 @@
  *
  * The Initial Developer of the Original Code is
  * Paul O’Shannessy <paul@oshannessy.com>
+ * Dion Almaer <http://almaer.com/>
  * Portions created by the Initial Developer are Copyright (C) 2009
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * sabret00the <sabret00the@yahoo.co.uk>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -34,73 +36,68 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+jetpack.future.import("menu");
+jetpack.future.import("clipboard");
 
-// The clipboard isn't implemented in Jet Pack yet, so use the service.
-const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"].
-                         getService(Components.interfaces.nsIClipboardHelper);
-///////////////////////////////////////////////////////////////////////////////
-
-// global store to memoize trimed urls
-var trimd = {};
-
-function Trim(doc) {
-  this._doc = $(doc);
-  var _this = this;
-  $(doc).click(function(){ _this.trimDoc(); });
-  // check state every second to set the status bar color
-  setInterval(function() {
-    _this.setState();
-  }, 1000);
-}
-Trim.prototype = {
-  _doc: null,
-  _trimUrl: null,
-  _lastUrl: null,
-
-  trimDoc: function() {
-    if (!!trimd[jetpack.tabs.focused.url]) {
-      this.copyToClipboard(trimd[jetpack.tabs.focused.url]);
-    } else {
-      this.trimUrl(jetpack.tabs.focused.url);
-    }
-  },
-  setState: function() {
-    if (!!trimd[jetpack.tabs.focused.url])
-      this._doc.find("#trim").css("color", "green");
-    else
-      this._doc.find("#trim").css("color", "#666");
-  },
-  trimUrl: function(aUrl) {
-    this._lastUrl = aUrl;
-    var _this = this;
-    $.get("http://api.tr.im/api/trim_url.json",
-               { url: aUrl },
-               function(data) {
-      trimd[_this._lastUrl] = data.url;
-      _this.setState();
-      _this.copyToClipboard(data.url);
-    }, "json");
-  },
-  copyToClipboard: function(aUrl) {
-    // again, gClipboardHelper not the final API
-    gClipboardHelper.copyString(aUrl);
-    var msg = "Copied " + aUrl + " to your clipboard"
-    jetpack.notifications.show({
-      title: "tr.im",
-      body: msg,
-      icon: "http://tr.im/favicon.ico"
-    });
-  }
+var manifest = {
+	settings: [ 
+  	{ name: "trimUsername", type: "text", label: "tr.im Username" },
+    { name: "trimPassword", type: "password", label: "tr.im Password" }
+  ]
 };
 
-var theHTML = "<html><head><style>body{text-align: center} #trim{ color: #666; font-size: 10px; font-family: helvetica, arial, sans-serif; }</style></head><body><a id='trim' href='javascript(onClick;return 'tr.im Link';);><img src='http://tr.im/favicon.ico' />tr.im</a></body></html>";
+jetpack.future.import("storage.settings");
 
-jetpack.statusBar.append({
-  html: theHTML,
-  width: 50,
-  onReady: function(doc) {
-    var trim = new Trim(doc);
+function trimUrl(urlToTrim, mods) {
+  //var url = "http://tr.im/api/trim_url.json";
+  var url = "http://api.tr.im/v1/trim_url.json";
+  var params = Array();
+  params.url = urlToTrim;
+  if (!params.url)
+    params.url = jetpack.tabs.focused.url;
+  var TrImPrefs = jetpack.storage.settings;
+  if (mods.trimUsername && mods.trimPassword) {
+    params.username = mods.trimUsername;
+    params.password = mods.trimPassword;
+  } else if (TrImPrefs) {
+    params.username = TrImPrefs.trimUsername;
+    params.password = TrImPrefs.trimPassword;
+  }
+  params.api_key = '7Ctm8v3s5Fr4ePaJ8xzsrJSQGwjC68SFkeAHDrydiuEKjccY';
+  jQuery.get (url, params, function (reply) {
+    if (reply.status.code >= 400)
+	    jetpack.notifications.show({
+	      title: "tr.im",
+	      body: reply.status.message,
+	      icon: "http://tr.im/favicon.ico"
+	    });
+    else {
+      jetpack.clipboard.set(reply.url);
+	    jetpack.notifications.show({
+	      title: "tr.im",
+	      body: "Copied the trimmed URL (" + reply.url + ") to your clipboard.",
+	      icon: "http://tr.im/favicon.ico"
+	    });
+    }
+  }, 'json');
+ }
+
+jetpack.menu.context.page.add({
+	label: "tr.im This Page",
+	icon: "http://tr.im/favicon.ico",
+	command: function(widget){
+    $(widget).click(function(){
+      trimUrl(jetpack.tabs.focused.url, jetpack.storage.settings);
+    });
   }
 });
 
-
+jetpack.statusBar.append({
+  html: "<span id='trim'><img src='http://tr.im/favicon.ico' class='trimimage' />&nbsp;tr.im</span>",
+  width: 50,
+  onReady: function(widget){
+    $(widget).click(function(){
+      trimUrl(jetpack.tabs.focused.url, jetpack.storage.settings);
+    });
+  }
+});
