@@ -105,11 +105,7 @@ var currentLongUrl = jetpack.tabs.focused.contentWindow.location.href;
 jetpack.menu.context.page.add({
 	label: "tr.im This Page",
 	icon: "http://tr.im/favicon.ico",
-	command: function(widget){
-		$(widget).click(function(){
-			trimUrl(currentLongUrl, jetpack.storage.settings);
-		});
-	}
+	command: function() trimUrl(currentLongUrl, jetpack.storage.settings)
 });
 
 /* May bring this back in the future. For now it's not worth worrying about.
