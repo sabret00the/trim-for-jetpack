@@ -37,7 +37,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 jetpack.future.import("menu");
-jetpack.future.import("toolbar");
+//jetpack.future.import("toolbar");
 jetpack.future.import("clipboard");
 
 var manifest = {
@@ -50,9 +50,19 @@ var manifest = {
 jetpack.future.import("storage.settings");
 
 function isNumeric(num) {
-  return !isNaN(parseFloat(num)) && isFinite(num);
+	return !isNaN(parseFloat(num)) && isFinite(num);
 }
 
+function paramsToString(value, index, array) {
+	var newString = index + "=" + value;
+	jetpack.notifications.show(index + "=" + value);
+	if (array.length > index) {
+		newString += "&";
+	}
+	return newString;
+}
+
+	
 function trimUrl(urlToTrim, settings) {
 	var trimApiLoc = "http://api.tr.im/v1/trim_url.json";
 	var params = new Array();
@@ -64,19 +74,35 @@ function trimUrl(urlToTrim, settings) {
 	
 	params.url = encodeURIComponent(params.url);
 	
-	var TrImPrefs = jetpack.storage.settings;
+	//var TrImPrefs = jetpack.storage.settings;
 	 
 	if (settings.trimUsername && settings.trimPassword) {
 		params.username = settings.trimUsername;
 		params.password = settings.trimPassword;
-	} else if (TrImPrefs) {
+	}/* else if (TrImPrefs) {
 		params.username = TrImPrefs.trimUsername;
 		params.password = TrImPrefs.trimPassword;
-	}
+	}*/
 	
 	params.api_key = "7Ctm8v3s5Fr4ePaJ8xzsrJSQGwjC68SFkeAHDrydiuEKjccY";
+	params.sandbox = true;
 	
-	jQuery.get (trimApiLoc, params, function(reply) {
+	//var trimApiParams = "?" + params.forEach(paramsToString);
+	
+	var trimApiParams = "";
+	// implode() params array. make sure to use each individual key as glue
+	//for (key = 0; key++; key =< params.length) {
+	for (key in params) {
+		if (key == "url") {
+			trimApiParams += "?";
+		} else {
+			trimApiParams += "&";
+		}
+		
+		trimApiParams += key + "=" + params[key];
+	}
+	jetpack.notifications.show(trimApiParams);
+	jQuery.get (trimApiLoc, trimApiParams, function(reply) {
 		if (reply.status.code >= 400) {
 			jetpack.notifications.show({
 				title: "tr.im",
@@ -100,7 +126,7 @@ function trimUrl(urlToTrim, settings) {
 	}, 'json');
  }
 
-var currentLongUrl = jetpack.tabs.focused.contentWindow.location.href;
+var currentLongUrl = jetpack.tabs.focused.url;
 
 jetpack.menu.context.page.add({
 	label: "tr.im This Page",
@@ -126,7 +152,6 @@ theHtml.css = '<style>#trim { position: absolute; z-index: 50; background-color:
 theHtml.body = "<span id='trim'><img src='http://tr.im/favicon.ico' class='trimimage' />&nbsp;tr.im</span>";
 
 jetpack.statusBar.append({
-	//html: "<span style= 'position: absolute; margin: 0; padding: 0; vertical-align: top;' id='trim'><img src='http://tr.im/favicon.ico' class='trimimage' />&nbsp;tr.im</span>",
 	html: theHtml.css + theHtml.body,
 	width: 50,
 	onReady: function(widget){
